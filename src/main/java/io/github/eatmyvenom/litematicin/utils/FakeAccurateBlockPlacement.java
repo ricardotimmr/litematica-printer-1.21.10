@@ -373,7 +373,7 @@ public class FakeAccurateBlockPlacement {
 			placeBlock(blockPos, blockState);
 			return true;
 		}
-		Direction facing = fi.dy.masa.malilib.util.BlockUtils.getFirstPropertyFacingValue(blockState); //facing of block itself
+		Direction facing = Printer.getSimplifiedFirstPropertyFacingValue(blockState); //facing of block itself
 		if (facing == null && blockState.getBlock() instanceof AbstractRailBlock) {
 			facing = Printer.convertRailShapetoFace(blockState);
 		} else if (blockState.getBlock() instanceof TorchBlock) {
@@ -517,8 +517,8 @@ public class FakeAccurateBlockPlacement {
 				MessageHolder.sendOrderMessage("No stateGrindStone was found");
 				return false;
 			} else if (handlingState != null && (handlingState.getBlock() instanceof FacingBlock || handlingState.getBlock() instanceof HorizontalFacingBlock && !(handlingState.getBlock() instanceof WallMountedBlock))) {
-				Direction handling = fi.dy.masa.malilib.util.BlockUtils.getFirstPropertyFacingValue(handlingState);
-				Direction other = fi.dy.masa.malilib.util.BlockUtils.getFirstPropertyFacingValue(state);
+				Direction handling = Printer.getSimplifiedFirstPropertyFacingValue(handlingState);
+				Direction other = Printer.getSimplifiedFirstPropertyFacingValue(state);
 				return handling == other;
 			}
 			return true;
@@ -570,7 +570,7 @@ public class FakeAccurateBlockPlacement {
 		if (pickedItem.getItem() == currentHandling && Printer.doSchematicWorldPickBlock(minecraftClient, blockState, pos)) {
 			MessageHolder.sendOrderMessage("Placing " + blockState.getBlock().getTranslationKey() + " at " + pos.toShortString() + " stack at hand is " + player.getMainHandStack());
 
-			MessageHolder.sendDebugMessage(player, "Placing " + blockState.getBlock().getTranslationKey() + " at " + pos.toShortString() + " facing : " + fi.dy.masa.malilib.util.BlockUtils.getFirstPropertyFacingValue(blockState));
+			MessageHolder.sendDebugMessage(player, "Placing " + blockState.getBlock().getTranslationKey() + " at " + pos.toShortString() + " facing : " + Printer.getSimplifiedFirstPropertyFacingValue(blockState));
 			MessageHolder.sendDebugMessage(player, "Player facing is set to : " + fakeDirection + " Yaw : " + fakeYaw + " Pitch : " + fakePitch + " ticks : " + requestedTicks + " for pos " + pos.toShortString());
 			interactBlock(minecraftClient, blockHitResult);
 			InventoryUtils.decrementCount(isCreative(player));

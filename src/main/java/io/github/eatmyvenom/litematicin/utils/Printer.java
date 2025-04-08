@@ -11,10 +11,15 @@ import fi.dy.masa.litematica.util.InventoryUtils;
 import fi.dy.masa.litematica.util.*;
 import fi.dy.masa.litematica.util.RayTraceUtils.RayTraceWrapper;
 import fi.dy.masa.litematica.world.SchematicWorldHandler;
+//#if MC>=12105
+//$$ import fi.dy.masa.malilib.util.EquipmentUtils;
+//#endif
 import fi.dy.masa.malilib.util.IntBoundingBox;
 import fi.dy.masa.malilib.util.LayerRange;
 import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+import org.jetbrains.annotations.Nullable;
+
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.block.*;
@@ -99,14 +104,24 @@ public class Printer {
 		} catch (Exception e) { //doors wtf
 			MessageHolder.sendMessageUncheckedUnique("Cannot get tested orientation of given block "+ state.getBlock().getName());
 			//fallback to player horizontal facing...
-			return player.getHorizontalFacing() == fi.dy.masa.malilib.util.BlockUtils.getFirstPropertyFacingValue(state);
+			return player.getHorizontalFacing() == getSimplifiedFirstPropertyFacingValue(state);
 		}
 		if (testState == null) {
 			MessageHolder.sendMessageUncheckedUnique("Cannot get tested orientation of given block "+ state.getBlock().getName());
-			return player.getHorizontalFacing() == fi.dy.masa.malilib.util.BlockUtils.getFirstPropertyFacingValue(state);
+			return player.getHorizontalFacing() == getSimplifiedFirstPropertyFacingValue(state);
 		}
-		Direction testFacing = fi.dy.masa.malilib.util.BlockUtils.getFirstPropertyFacingValue(testState);
-		return testFacing == fi.dy.masa.malilib.util.BlockUtils.getFirstPropertyFacingValue(state);
+		Direction testFacing = getSimplifiedFirstPropertyFacingValue(testState);
+		return testFacing == getSimplifiedFirstPropertyFacingValue(state);
+	}
+
+	@Nullable
+	public static Direction getSimplifiedFirstPropertyFacingValue(BlockState stateIn)
+	{
+		//#if MC>=12105
+		//$$ return fi.dy.masa.malilib.util.game.BlockUtils.getFirstPropertyFacingValue(stateIn).orElse(null);
+		//#else
+		return fi.dy.masa.malilib.util.BlockUtils.getFirstPropertyFacingValue(stateIn);
+		//#endif
 	}
 
 	public static boolean canPickBlock(MinecraftClient mc, BlockState preference, BlockPos pos) {
@@ -123,7 +138,9 @@ public class Printer {
 		if (!stack.isEmpty() && stack.getItem() != Items.AIR) {
 			PlayerInventory inv = getInventory(mc.player);
 			if (!isCreative(mc.player)) {
-				//#if MC>=12102
+				//#if MC>=12105
+				//$$ if (EquipmentUtils.isRegularTool(stack) || stack.getItem() instanceof FlintAndSteelItem) {
+				//#elseif MC>=12102
 				//$$ if (stack.getItem() instanceof MiningToolItem || stack.getItem() instanceof FlintAndSteelItem) {
 				//#else
 				if (stack.getItem() instanceof ToolItem || stack.getItem() instanceof FlintAndSteelItem) {
@@ -677,10 +694,8 @@ public class Printer {
 								Block sBlock = stateSchematic.getBlock();
 								// Blocks are equal, but have different states
 								if (cBlock.getName().equals(sBlock.getName())) {
-									Direction facingSchematic = fi.dy.masa.malilib.util.BlockUtils
-										.getFirstPropertyFacingValue(stateSchematic);
-									Direction facingClient = fi.dy.masa.malilib.util.BlockUtils
-										.getFirstPropertyFacingValue(stateClient);
+									Direction facingSchematic = getSimplifiedFirstPropertyFacingValue(stateSchematic);
+									Direction facingClient = getSimplifiedFirstPropertyFacingValue(stateClient);
 
 									if (facingSchematic == facingClient) {
 										int clickTimes = 0;
@@ -834,8 +849,8 @@ public class Printer {
 												(Objects.equals(ClientRailShape, "east_west") || Objects.equals(ClientRailShape, "north_south"));
 										}
 									} else if (sBlock instanceof ObserverBlock || sBlock instanceof PistonBlock || sBlock instanceof RepeaterBlock || sBlock instanceof ComparatorBlock || sBlock instanceof FenceGateBlock || sBlock instanceof TrapdoorBlock) {
-										Direction facingSchematic = fi.dy.masa.malilib.util.BlockUtils.getFirstPropertyFacingValue(stateSchematic);
-										Direction facingClient = fi.dy.masa.malilib.util.BlockUtils.getFirstPropertyFacingValue(stateClient);
+										Direction facingSchematic = getSimplifiedFirstPropertyFacingValue(stateSchematic);
+										Direction facingClient = getSimplifiedFirstPropertyFacingValue(stateClient);
 										ShouldFix = facingSchematic != facingClient;
 										ShapeBoolean = facingClient.getOpposite().equals(facingSchematic);
 									}
@@ -1079,7 +1094,7 @@ public class Printer {
 								return ActionResult.SUCCESS;
 							}
 						}
-						Direction facing = fi.dy.masa.malilib.util.BlockUtils.getFirstPropertyFacingValue(stateSchematic);
+						Direction facing = getSimplifiedFirstPropertyFacingValue(stateSchematic);
 						if (facing != null) {
 							facing = facing.getOpposite();
 						}
@@ -1267,7 +1282,7 @@ public class Printer {
 									}
 									continue;
 								} else if (canPlaceFace(FacingData.getFacingData(stateSchematic), stateSchematic, primaryFacing, horizontalFacing)) { // no gui
-									Direction required = fi.dy.masa.malilib.util.BlockUtils.getFirstPropertyFacingValue(stateSchematic);
+									Direction required = getSimplifiedFirstPropertyFacingValue(stateSchematic);
 									required = applyPlacementFacing(stateSchematic, required, stateClient);
 									Vec3d hitVec = applyHitVec(npos, stateSchematic, required);
 									if (doSchematicWorldPickBlock(mc, stateSchematic, pos)) {
@@ -2217,7 +2232,7 @@ public class Printer {
 		if (stateSchematic.get(ObserverBlock.POWERED)) {
 			return false;
 		}
-		Direction facingSchematic = fi.dy.masa.malilib.util.BlockUtils.getFirstPropertyFacingValue(stateSchematic);
+		Direction facingSchematic = getSimplifiedFirstPropertyFacingValue(stateSchematic);
 		assert facingSchematic != null;
 		boolean observerCantAvoid = ObserverCantAvoid(mc, world, facingSchematic, pos);
 		if (observerCantAvoid) {
@@ -2262,7 +2277,7 @@ public class Printer {
 		if (stateSchematic.get(ObserverBlock.POWERED)) {
 			return null;
 		}
-		Direction facingSchematic = fi.dy.masa.malilib.util.BlockUtils.getFirstPropertyFacingValue(stateSchematic);
+		Direction facingSchematic = getSimplifiedFirstPropertyFacingValue(stateSchematic);
 		assert facingSchematic != null;
 		boolean observerCantAvoid = ObserverCantAvoid(mc, world, facingSchematic, pos);
 		if (observerCantAvoid) {
@@ -2309,7 +2324,7 @@ public class Printer {
 		if (stateSchematic.isOf(Blocks.GRINDSTONE)) {
 			return true;
 		}
-		Direction facing = fi.dy.masa.malilib.util.BlockUtils.getFirstPropertyFacingValue(stateSchematic);
+		Direction facing = getSimplifiedFirstPropertyFacingValue(stateSchematic);
 		if (stateSchematic.getBlock() instanceof AbstractRailBlock) {
 			facing = convertRailShapetoFace(stateSchematic);
 		}
@@ -2829,7 +2844,7 @@ public class Printer {
 		//$$ double y = pos.getY();
 		//$$ double z = pos.getZ();
 		//$$ Block block = state.getBlock();
-		//$$ Direction facing = fi.dy.masa.malilib.util.BlockUtils.getFirstPropertyFacingValue(state);
+		//$$ Direction facing = getSimplifiedFirstPropertyFacingValue(state);
 		//$$ int railEnumCode = getRailShapeOrder(state);
 		//$$ final int propertyIncrement = 16;
 		//$$ if (facing == null && railEnumCode == 32 && !(block instanceof SlabBlock)) {

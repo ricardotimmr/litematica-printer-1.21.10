@@ -1,5 +1,5 @@
 plugins {
-	id 'fabric-loom' version '1.9-SNAPSHOT' apply false
+	id 'fabric-loom' version '1.10-SNAPSHOT' apply false
 	// https://github.com/ReplayMod/preprocessor
 	// https://github.com/Fallen-Breath/preprocessor
 	id 'com.replaymod.preprocess' version '9d21b334a7'
@@ -23,6 +23,7 @@ preprocess {
 	def mc1211 = createNode('1.21.1', 1_21_01, 'yarn')
 	def mc1213 = createNode('1.21.3', 1_21_03, 'yarn')
 	def mc1214 = createNode('1.21.4', 1_21_04, 'yarn')
+	def mc1215 = createNode('1.21.5', 1_21_05, 'yarn')
 
 	// mapping difference map
 	// base 1194 -> 1193 -> 1192 ->1190-> 118 -> 117 -> 116
@@ -34,6 +35,7 @@ preprocess {
 	mc1211.link(mc1210, file('versions/mapping-1.21.1-1.21.0.txt'))
 	mc1213.link(mc1211, file('versions/mapping-1.21.3-1.21.1.txt'))
 	mc1214.link(mc1213, file('versions/mapping-1.21.4-1.21.3.txt'))
+	mc1215.link(mc1214, file('versions/mapping-1.21.5-1.21.4.txt'))
 	//mc1194.link(mc1193, file('versions/mapping-1.19.4-1.19.3.txt'))
 	//mc1193.link(mc1192, file('versions/mapping-1.19.3-1.19.2.txt'))
 	//mc1192.link(mc1190, file('versions/mapping-1.19.2-1.19.0.txt'))
@@ -67,7 +69,7 @@ tasks.register('buildAndGather') {
 					exclude '*-dev.jar', '*-sources.jar', '*-shadow.jar'
 				}
 				into buildLibs(rootProject)
-				duplicatesStrategy DuplicatesStrategy.INCLUDE
+				duplicatesStrategy = DuplicatesStrategy.INCLUDE
 			}
 		}
 	}
