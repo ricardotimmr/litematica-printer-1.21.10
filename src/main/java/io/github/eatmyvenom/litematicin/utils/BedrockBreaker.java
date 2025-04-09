@@ -265,7 +265,11 @@ public class BedrockBreaker {
 		final ItemStack PistonStack = Items.PISTON.getDefaultStack();
 		InventoryUtils.swapToItem(mc, PistonStack);
 		if (sync) {
+			//#if MC>=12105
+			//$$ mc.getNetworkHandler().sendPacket(new UpdateSelectedSlotC2SPacket(getInventory(mc).getSelectedSlot()));
+			//#else
 			mc.getNetworkHandler().sendPacket(new UpdateSelectedSlotC2SPacket(getInventory(mc).selectedSlot));
+			//#endif
 		}
 		MessageHolder.sendDebugMessage("Places piston at " + pos.toShortString() + " with facing " + facing);
 		//mc.getNetworkHandler().sendPacket(new UpdateSelectedSlotC2SPacket(mc.player.getInventory().selectedSlot));
@@ -458,7 +462,11 @@ public class BedrockBreaker {
 		MessageHolder.sendDebugMessage("Swaps to Pickaxe " + stack);
 		InventoryUtils.swapToItem(mc, stack);
 		MessageHolder.sendDebugMessage("Holding stack " + mc.player.getMainHandStack());
+		//#if MC>=12105
+		//$$ mc.getNetworkHandler().sendPacket(new UpdateSelectedSlotC2SPacket(getInventory(mc).getSelectedSlot()));
+		//#else
 		mc.getNetworkHandler().sendPacket(new UpdateSelectedSlotC2SPacket(getInventory(mc).selectedSlot));
+		//#endif
 	}
 
 

@@ -1,12 +1,9 @@
 package io.github.eatmyvenom.litematicin.utils;
 
-import fi.dy.masa.litematica.config.Configs;
-import fi.dy.masa.litematica.config.Hotkeys;
-import fi.dy.masa.litematica.materials.MaterialCache;
-//#if MC>=12105
-//$$ import fi.dy.masa.malilib.util.EquipmentUtils;
-//#endif
+import java.util.*;
+import java.util.function.Predicate;
 import io.github.eatmyvenom.litematicin.LitematicaMixinMod;
+
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.ShulkerBoxBlock;
@@ -14,15 +11,11 @@ import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.entity.LootableContainerBlockEntity;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
-//#if MC >= 12006
-//$$ import net.minecraft.component.DataComponentTypes;
-//$$ import net.minecraft.component.type.ContainerComponent;
-//#endif
+import net.minecraft.component.DataComponentTypes;
+import net.minecraft.component.type.ContainerComponent;
 import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.inventory.Inventories;
 import net.minecraft.inventory.Inventory;
 import net.minecraft.item.*;
-import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket;
 import net.minecraft.network.packet.c2s.play.UpdateSelectedSlotC2SPacket;
 import net.minecraft.screen.slot.SlotActionType;
@@ -31,13 +24,16 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.world.World;
 
-import java.util.*;
-import java.util.function.Predicate;
+import fi.dy.masa.malilib.util.EquipmentUtils;
+import fi.dy.masa.litematica.config.Configs;
+import fi.dy.masa.litematica.config.Hotkeys;
+import fi.dy.masa.litematica.materials.MaterialCache;
 
 import static io.github.eatmyvenom.litematicin.LitematicaMixinMod.*;
 import static io.github.eatmyvenom.litematicin.utils.Printer.*;
 
-public class InventoryUtils {
+public class InventoryUtils
+{
 	private static int ptr = -1;
 
 	public final static HashSet<Item> ITEMS = new HashSet<>();
@@ -98,9 +94,9 @@ public class InventoryUtils {
 			return;
 		}
 		//#if MC>=12105
-		//$$ for (ItemStack stack : client.player.getInventory().getMainStacks()) {
+		for (ItemStack stack : client.player.getInventory().getMainStacks()) {
 		//#elseif MC>=11700
-		for (ItemStack stack : client.player.getInventory().main) {
+		//$$ for (ItemStack stack : client.player.getInventory().main) {
 		//#else
 		//$$ for (ItemStack stack : client.player.inventory.main) {
 		//#endif
@@ -113,32 +109,32 @@ public class InventoryUtils {
 				if (blockItem.getBlock() instanceof ShulkerBoxBlock) {
 					int invSize = 27;
 					//#if MC >= 12006
-					//$$ DefaultedList<ItemStack> returnStacks = DefaultedList.ofSize(invSize, ItemStack.EMPTY);
-					//$$ ContainerComponent container = stack.getComponents().get(DataComponentTypes.CONTAINER);
-					//$$ if (container != null) {
-						//$$ container.copyTo(returnStacks);
-						//$$ for (ItemStack returnStack : returnStacks) {
-							//$$ Item returnItem = returnStack.getItem();
-							//$$ if (returnItem != null) {
-								//$$ ITEMS.add(returnItem);
-							//$$ }
-						//$$ }
-					//$$ }
-					//#else
-					NbtCompound compound = stack.getSubNbt("BlockEntityTag");
-					if (compound == null) {
-						continue;
-					}
 					DefaultedList<ItemStack> returnStacks = DefaultedList.ofSize(invSize, ItemStack.EMPTY);
-					if (compound.contains("Items")) {
-						Inventories.readNbt(compound, returnStacks);
-					}
-					for (ItemStack returnStack : returnStacks) {
-						Item returnItem = returnStack.getItem();
-						if (returnItem != null) {
-							ITEMS.add(returnItem);
+					ContainerComponent container = stack.getComponents().get(DataComponentTypes.CONTAINER);
+					if (container != null) {
+						container.copyTo(returnStacks);
+						for (ItemStack returnStack : returnStacks) {
+							Item returnItem = returnStack.getItem();
+							if (returnItem != null) {
+								ITEMS.add(returnItem);
+							}
 						}
 					}
+					//#else
+					//$$ NbtCompound compound = stack.getSubNbt("BlockEntityTag");
+					//$$ if (compound == null) {
+					//$$ 	continue;
+					//$$ }
+					//$$ DefaultedList<ItemStack> returnStacks = DefaultedList.ofSize(invSize, ItemStack.EMPTY);
+					//$$ if (compound.contains("Items")) {
+					//$$ 	Inventories.readNbt(compound, returnStacks);
+					//$$ }
+					//$$ for (ItemStack returnStack : returnStacks) {
+					//$$ 	Item returnItem = returnStack.getItem();
+					//$$ 	if (returnItem != null) {
+					//$$ 		ITEMS.add(returnItem);
+					//$$ 	}
+					//$$ }
 					//#endif
 				}
 			}
@@ -164,11 +160,11 @@ public class InventoryUtils {
 	public static boolean isToolLikeItem(Item item) {
 		// ToolItem or FlintAndSteelItem or ShearsItem
 		//#if MC>=12105
-		//$$ return item instanceof FlintAndSteelItem || item instanceof ShearsItem;
+		return item instanceof FlintAndSteelItem || item instanceof ShearsItem;
 		//#elseif MC>=12102
 		//$$ return item instanceof MiningToolItem || item instanceof FlintAndSteelItem || item instanceof ShearsItem;
 		//#else
-		return item instanceof ToolItem || item instanceof FlintAndSteelItem || item instanceof ShearsItem;
+		//$$ return item instanceof ToolItem || item instanceof FlintAndSteelItem || item instanceof ShearsItem;
 		//#endif
 	}
 
@@ -265,9 +261,9 @@ public class InventoryUtils {
 		}
 		boolean isItemEqual = ItemStack.areItemsEqual(a, b);
 		//#if MC >= 12006
-		//$$ boolean nbtCondition = LitematicaMixinMod.PRINTER_IGNORE_NBT.getBooleanValue() || ItemStack.areItemsAndComponentsEqual(a, b);
+		boolean nbtCondition = LitematicaMixinMod.PRINTER_IGNORE_NBT.getBooleanValue() || ItemStack.areItemsAndComponentsEqual(a, b);
 		//#else
-		boolean nbtCondition = PRINTER_IGNORE_NBT.getBooleanValue() || ItemStack.areNbtEqual(a, b);
+		//$$ boolean nbtCondition = PRINTER_IGNORE_NBT.getBooleanValue() || ItemStack.canCombine(a, b);
 		//#endif
 		return isItemEqual && nbtCondition;
 	}
@@ -280,9 +276,9 @@ public class InventoryUtils {
 			return areItemsExactAllowNamed(a, b);
 		}
 		//#if MC >= 12006
-		//$$ boolean nbtCondition = LitematicaMixinMod.PRINTER_IGNORE_NBT.getBooleanValue() || ItemStack.areItemsAndComponentsEqual(a, b);
+		boolean nbtCondition = LitematicaMixinMod.PRINTER_IGNORE_NBT.getBooleanValue() || ItemStack.areItemsAndComponentsEqual(a, b);
 		//#else
-		boolean nbtCondition = PRINTER_IGNORE_NBT.getBooleanValue() || ItemStack.areNbtEqual(a, b);
+		//$$ boolean nbtCondition = PRINTER_IGNORE_NBT.getBooleanValue() || ItemStack.canCombine(a, b);
 		//#endif
 		return ItemStack.areItemsEqual(a, b) && nbtCondition;
 	}
@@ -309,21 +305,21 @@ public class InventoryUtils {
 			return a.getItem() == b.getItem();
 		}
 		//#if MC>=12102
-		//$$ else if (a.getItem() instanceof MiningToolItem || b.getItem() instanceof MiningToolItem) {
+		else if (EquipmentUtils.isRegularTool(a) || EquipmentUtils.isRegularTool(b)) {
 		//#else
-		else if (a.getItem() instanceof ToolItem || b.getItem() instanceof ToolItem) {
+		//$$ else if (a.getItem() instanceof ToolItem || b.getItem() instanceof ToolItem) {
 		//#endif
 			return false; // safety
 		}
 		//#if MC >= 12006
-		//$$ return ItemStack.areItemsEqual(a, b) || a.getMaxCount() == b.getMaxCount() && a.contains(DataComponentTypes.CUSTOM_NAME) && b.contains(DataComponentTypes.CUSTOM_NAME);
+		return ItemStack.areItemsEqual(a, b) || a.getMaxCount() == b.getMaxCount() && a.contains(DataComponentTypes.CUSTOM_NAME) && b.contains(DataComponentTypes.CUSTOM_NAME);
 		//#else
-		return ItemStack.areItemsEqual(a, b) || a.getMaxCount() == b.getMaxCount() && a.hasCustomName() && b.hasCustomName();
+		//$$ return ItemStack.areItemsEqual(a, b) || a.getMaxCount() == b.getMaxCount() && a.hasCustomName() && b.hasCustomName();
 		//#endif
 	}
 
 	public static boolean requiresSwap(ClientPlayerEntity player, ItemStack stack) {
-		int selectedSlot = getInventory(player).selectedSlot;
+		int selectedSlot = getInventory(player).getSelectedSlot();
 		if (usedSlots.get(selectedSlot) != null) {
 			return stack.getItem() != usedSlots.get(selectedSlot) || slotCounts.getOrDefault(selectedSlot, 0) <= 0;
 		}
@@ -339,7 +335,7 @@ public class InventoryUtils {
 	}
 
 	public static int getSlotWithItem(PlayerInventory inv, ItemStack stack) {
-		for (int i = 0; i < inv.main.size(); i++) {
+		for (int i = 0; i < inv.getMainStacks().size(); i++) {
 			if (ItemStack.areItemsEqual(inv.getStack(i), stack)) {
 				return i;
 			}
@@ -355,9 +351,9 @@ public class InventoryUtils {
 		for (int i = 0; i < inv.size(); i++) {
 			ItemStack stack = inv.getStack(i);
 			//#if MC>=12102
-			//$$ if (stack.getItem() instanceof MiningToolItem && predicate.test(stack)) {
+			if (EquipmentUtils.isRegularTool(stack) && predicate.test(stack)) {
 			//#else
-			if (stack.getItem() instanceof ToolItem && predicate.test(stack)) {
+			//$$ if (stack.getItem() instanceof ToolItem && predicate.test(stack)) {
 			//#endif
 				return true;
 			}
@@ -381,8 +377,8 @@ public class InventoryUtils {
 			}
 		}
 		if (!requiresSwap(player, stack)) {
-			assert trackedSelectedSlot == -1 || trackedSelectedSlot == getInventory(player).selectedSlot :
-				"Selected slot changed for external reason! : expected " + trackedSelectedSlot + ", current " + getInventory(player).selectedSlot;
+			assert trackedSelectedSlot == -1 || trackedSelectedSlot == getInventory(player).getSelectedSlot() :
+				"Selected slot changed for external reason! : expected " + trackedSelectedSlot + ", current " + getInventory(player).getSelectedSlot();
 			assert previousItem == null || previousItem == stack.getItem() : "Handling item :  " + handlingItem + " was not equal to " + stack.getItem();
 			MessageHolder.sendOrderMessage("Didn't require swap for item " + stack.getItem() + " previous handling item : " + previousItem);
 			lastCount = isCreative(player) ? 65536 : getMainHandStack(player).getCount();
@@ -391,9 +387,9 @@ public class InventoryUtils {
 					MessageHolder.sendMessageUncheckedUnique("Hotbar has duplicate item references, which should not happen!");
 				}
 			}
-			trackedSelectedSlot = getInventory(player).selectedSlot;
-			usedSlots.put(getInventory(player).selectedSlot, getMainHandStack(player).getItem());
-			slotCounts.put(getInventory(player).selectedSlot, lastCount);
+			trackedSelectedSlot = getInventory(player).getSelectedSlot();
+			usedSlots.put(getInventory(player).getSelectedSlot(), getMainHandStack(player).getItem());
+			slotCounts.put(getInventory(player).getSelectedSlot(), lastCount);
 			previousItem = stack.getItem();
 			lastWorkedTick = tickCount;
 			return true;
@@ -401,17 +397,17 @@ public class InventoryUtils {
 		if (usedSlots.containsValue(stack.getItem())) {
 			int slot = searchSlot(stack.getItem());
 			if (slot != -1) {
-				getInventory(player).selectedSlot = slot;
-				trackedSelectedSlot = getInventory(player).selectedSlot;
+				getInventory(player).setSelectedSlot(slot);
+				trackedSelectedSlot = getInventory(player).getSelectedSlot();
 				usedSlots.put(trackedSelectedSlot, stack.getItem());
 				slotCounts.put(trackedSelectedSlot, stack.getCount());
 				lastCount = stack.getCount();
 				previousItem = stack.getItem();
 				handlingItem = previousItem;
 				lastWorkedTick = tickCount;
-				MessageHolder.sendOrderMessage("Selected slot " + getInventory(player).selectedSlot + " based on cache for " + stack.getItem());
-				client.getNetworkHandler().sendPacket(new UpdateSelectedSlotC2SPacket(getInventory(player).selectedSlot));
-				return !getInventory(player).getMainHandStack().isEmpty();
+				MessageHolder.sendOrderMessage("Selected slot " + getInventory(player).getSelectedSlot() + " based on cache for " + stack.getItem());
+				client.getNetworkHandler().sendPacket(new UpdateSelectedSlotC2SPacket(getInventory(player).getSelectedSlot()));
+				return !getInventory(player).getSelectedStack().isEmpty();
 			}
 			else {
 				MessageHolder.sendOrderMessage("Used slot contains stack but cannot find " + stack.getItem());
@@ -419,7 +415,7 @@ public class InventoryUtils {
 		}
 		MessageHolder.sendOrderMessage("Trying survival Swap");
 		if (survivalSwap(client, player, stack)) {
-			usedSlots.put(getInventory(player).selectedSlot, stack.getItem());
+			usedSlots.put(getInventory(player).getSelectedSlot(), stack.getItem());
 			slotCounts.put(trackedSelectedSlot, getMainHandStack(player).getCount());
 			MessageHolder.sendOrderMessage("Swapped to item " + stack.getItem());
 			handlingItem = stack.getItem();
@@ -441,9 +437,9 @@ public class InventoryUtils {
 		for (int i = 0; i < inv.size(); i++) {
 			ItemStack stack = inv.getStack(i);
 			//#if MC>=12102
-			//$$ if (stack.getItem() instanceof MiningToolItem && predicate.test(stack)) {
+			if (EquipmentUtils.isRegularTool(stack) && predicate.test(stack)) {
 			//#else
-			if (stack.getItem() instanceof ToolItem && predicate.test(stack)) {
+			//$$ if (stack.getItem() instanceof ToolItem && predicate.test(stack)) {
 			//#endif
 				return stack;
 			}
@@ -459,19 +455,19 @@ public class InventoryUtils {
 	public static int getSlotWithStack(ClientPlayerEntity player, ItemStack stack) {
 		PlayerInventory inv = getInventory(player);
 		//#if MC>=12102
-		//$$ return stack.getItem() instanceof MiningToolItem || isToolLikeItem(stack.getItem()) ? getSlotWithItem(inv, stack) :getSlotWIthStackIgnoreNbt(getInventory(player), stack);
+		return EquipmentUtils.isRegularTool(stack) || isToolLikeItem(stack.getItem()) ? getSlotWithItem(inv, stack) :getSlotWIthStackIgnoreNbt(getInventory(player), stack);
 		//#else
-		return stack.getItem() instanceof ToolItem || isToolLikeItem(stack.getItem()) ? getSlotWithItem(inv, stack) :getSlotWIthStackIgnoreNbt(getInventory(player), stack);
+		//$$ return stack.getItem() instanceof ToolItem || isToolLikeItem(stack.getItem()) ? getSlotWithItem(inv, stack) :getSlotWIthStackIgnoreNbt(getInventory(player), stack);
 		//#endif
 	}
 
 	public static void printAllItems(PlayerInventory inv, ItemStack stack) {
 		// Debug
-		for (int i = 0; i < inv.main.size(); i++) {
+		for (int i = 0; i < inv.getMainStacks().size(); i++) {
 			//#if MC >= 12006
-			//$$ boolean areNbtsEqual = ItemStack.areItemsAndComponentsEqual(inv.getStack(i), stack);
+			boolean areNbtsEqual = ItemStack.areItemsAndComponentsEqual(inv.getStack(i), stack);
 			//#else
-			boolean areNbtsEqual = ItemStack.areNbtEqual(inv.getStack(i), stack);
+			//$$ boolean areNbtsEqual = ItemStack.canCombine(inv.getStack(i), stack);
 			//#endif
 			boolean areItemsEqual = ItemStack.areItemsEqual(inv.getStack(i), stack);
 			MessageHolder.sendUniqueDebugMessage("Slot " + i + ", " + inv.getStack(i).getItem() + " : " + areItemsEqual + " : " + areNbtsEqual);
@@ -488,7 +484,7 @@ public class InventoryUtils {
 		if (!PRINTER_IGNORE_NBT.getBooleanValue()) {
 			return defaultSlot;
 		}
-		for (int i = 0; i < inv.main.size(); i++) {
+		for (int i = 0; i < inv.getMainStacks().size(); i++) {
 			boolean areItemsEqual = ItemStack.areItemsEqual(inv.getStack(i), stack);
 			if (areItemsEqual) {
 				return i;
@@ -500,9 +496,9 @@ public class InventoryUtils {
 	public static int getSlotWithStack(PlayerInventory inv, ItemStack stack) {
 		int findingStack = getSlotWIthStackIgnoreNbt(inv, stack);
 		//#if MC>=12102
-		//$$ return stack.getItem() instanceof MiningToolItem || isToolLikeItem(stack.getItem()) ? getSlotWithItem(inv, stack) :findingStack;
+		return EquipmentUtils.isRegularTool(stack) || isToolLikeItem(stack.getItem()) ? getSlotWithItem(inv, stack) :findingStack;
 		//#else
-		return stack.getItem() instanceof ToolItem || isToolLikeItem(stack.getItem()) ? getSlotWithItem(inv, stack) :findingStack;
+		//$$ return stack.getItem() instanceof ToolItem || isToolLikeItem(stack.getItem()) ? getSlotWithItem(inv, stack) :findingStack;
 		//#endif
 	}
 
@@ -519,12 +515,12 @@ public class InventoryUtils {
 		}
 		MessageHolder.sendOrderMessage("Clicked creative stack " + stack.getItem() + " for slot " + selectedSlot);
 		//getInventory(player).addPickBlock(stack);
-		getInventory(player).selectedSlot = selectedSlot;
+		getInventory(player).setSelectedSlot(selectedSlot);
 		client.interactionManager.clickCreativeStack(stack, 36 + selectedSlot);
-		client.getNetworkHandler().sendPacket(new UpdateSelectedSlotC2SPacket(getInventory(player).selectedSlot));
+		client.getNetworkHandler().sendPacket(new UpdateSelectedSlotC2SPacket(getInventory(player).getSelectedSlot()));
 		trackedSelectedSlot = selectedSlot;
-		getInventory(player).main.set(selectedSlot, stack);
-		usedSlots.put(getInventory(player).selectedSlot, stack.getItem());
+		getInventory(player).getMainStacks().set(selectedSlot, stack);
+		usedSlots.put(getInventory(player).getSelectedSlot(), stack.getItem());
 		slotCounts.put(trackedSelectedSlot, 65536);
 		lastCount = 65536;
 		handlingItem = stack.getItem();
@@ -541,7 +537,7 @@ public class InventoryUtils {
 		}
 		if (areItemsExact(player.getOffHandStack(), stack) && !areItemsExact(getMainHandStack(player), stack)) {
 			lastCount = isCreative(player) ? 65536 : client.player.getOffHandStack().getCount();
-			client.getNetworkHandler().sendPacket(new PlayerActionC2SPacket(net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND, BlockPos.ORIGIN, Direction.DOWN));
+			client.getNetworkHandler().sendPacket(new PlayerActionC2SPacket(PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND, BlockPos.ORIGIN, Direction.DOWN));
 			return true;
 		}
 		int slot = getSlotWithStack(player, stack);
@@ -554,7 +550,7 @@ public class InventoryUtils {
 				MessageHolder.sendOrderMessage("Expected : " + usedSlots.get(slot) + " but current client handles : " + stack.getItem());
 				return false;
 			}
-			getInventory(player).selectedSlot = slot;
+			getInventory(player).setSelectedSlot(slot);
 			trackedSelectedSlot = slot;
 			MessageHolder.sendOrderMessage("Selected hotbar Slot " + slot);
 			lastCount = isCreative(player) ? 65536 : getInventory(player).getStack(slot).getCount();
@@ -566,10 +562,10 @@ public class InventoryUtils {
 				return false;
 			}
 			lastCount = isCreative(player) ? 65536 : getInventory(player).getStack(slot).getCount();
-			MessageHolder.sendOrderMessage("Slot at " + slot + "(" + getInventory(player).getStack(slot).getItem() + ")" + " is swapped with " + selectedSlot + "(" + getInventory(player).main.get(selectedSlot) + ")");
+			MessageHolder.sendOrderMessage("Slot at " + slot + "(" + getInventory(player).getStack(slot).getItem() + ")" + " is swapped with " + selectedSlot + "(" + getInventory(player).getMainStacks().get(selectedSlot) + ")");
 			usedSlots.put(selectedSlot, stack.getItem());
 			client.interactionManager.clickSlot(player.playerScreenHandler.syncId, slot, selectedSlot, SlotActionType.SWAP, player);
-			getInventory(player).selectedSlot = selectedSlot;
+			getInventory(player).setSelectedSlot(selectedSlot);
 			trackedSelectedSlot = selectedSlot;
 
 		}

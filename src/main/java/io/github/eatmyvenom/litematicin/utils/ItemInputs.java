@@ -55,7 +55,11 @@ class ItemInputs {
 			copiedStack.decrement(current.get(i).getStack().getCount());
 			copy.add(copiedStack);
 		}
+		//#if MC>=12105
+		//$$ int[] countArray = player.getInventory().getMainStacks().stream().mapToInt(ItemStack::getCount).toArray();
+		//#else
 		int[] countArray = player.getInventory().main.stream().mapToInt(ItemStack::getCount).toArray();
+		//#endif
 		for (ItemStack itemStack : copy) {
 			if (itemStack.isEmpty()) {
 				continue;
@@ -63,7 +67,11 @@ class ItemInputs {
 			//MessageHolder.sendUniqueDebugMessage("Checking for stack " + itemStack);
 			int requiredAmount = itemStack.getCount();
 			int i = 0;
+			//#if MC>=12105
+			//$$ for (ItemStack playerStacks : player.getInventory().getMainStacks()) {
+			//#else
 			for (ItemStack playerStacks : player.getInventory().main) {
+			//#endif
 				if (countArray[i] <= 0) {
 					i++;
 					continue;
