@@ -30,7 +30,31 @@ pluginManagement {
 }
 
 def settings = new JsonSlurper().parseText(file('settings.json').text)
+def requestedTasks = gradle.startParameter.taskNames
+def explicitlyRequested26_2 = gradle.startParameter.taskNames.any { taskName ->
+	taskName == ':26.2' ||
+		taskName == '26.2' ||
+		taskName.startsWith(':26.2:') ||
+		taskName.startsWith('26.2:')
+}
+def onlyRequestedOtherProjects = !requestedTasks.isEmpty() && requestedTasks.every { taskName ->
+	def normalizedTaskName = taskName.startsWith(':') ? taskName.substring(1) : taskName
+	normalizedTaskName.contains(':') && !normalizedTaskName.startsWith('26.2:')
+}
+def aggregateBuildRequested = requestedTasks.isEmpty() || requestedTasks.any { taskName ->
+	def normalizedTaskName = taskName.startsWith(':') ? taskName.substring(1) : taskName
+	['assemble', 'build', 'check'].contains(normalizedTaskName)
+}
 for (String version : settings.versions) {
+	if (version == '26.2' && JavaVersion.current() < JavaVersion.VERSION_25) {
+		if (onlyRequestedOtherProjects && !explicitlyRequested26_2) {
+			println 'Skipping :26.2 because Minecraft 26.2 requires running Gradle with Java 25.'
+			continue
+		}
+		if (aggregateBuildRequested || explicitlyRequested26_2) {
+			throw new GradleException('Minecraft 26.2 requires running Gradle with Java 25. Use a Java 25 runtime for :26.2, or request a specific legacy project such as :1.21.5:build with Java 21.')
+		}
+	}
 	include(":$version")
 
 	def proj = project(":$version")

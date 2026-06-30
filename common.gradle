@@ -1,7 +1,10 @@
-apply plugin: 'fabric-loom'
-apply plugin: 'com.replaymod.preprocess'
+boolean noRemap = project.findProperty("mapping_provider") == "none"
+apply plugin: noRemap ? 'net.fabricmc.fabric-loom' : 'fabric-loom'
+if (project.findProperty("standalone_sources") != "true") {
+    apply plugin: 'com.replaymod.preprocess'
+}
 
-int mcVersion = project.mcVersion
+int mcVersion = project.mcVersion.toString().toInteger()
 
 repositories {
     mavenCentral()
@@ -10,6 +13,7 @@ repositories {
     maven { url = 'https://pkgs.dev.azure.com/djtheredstoner/DevAuth/_packaging/public/maven/v1' }
     maven { url = 'https://masa.dy.fi/maven' }
     maven { url = 'https://www.cursemaven.com' }
+    maven { url = 'https://api.modrinth.com/maven' }
 	maven { url = 'https://maven.terraformersmc.com/releases/' }
 	maven { url = 'https://pkgs.dev.azure.com/djtheredstoner/DevAuth/_packaging/public/maven/v1' }
     maven { url = 'https://maven.fallenbreath.me/releases' }
@@ -23,38 +27,51 @@ configurations {
 dependencies {
 	//to change the versions see the gradle.properties file
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
-	mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
-	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
-	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabricapi_version}"
-	modCompileOnly files("../../external/${project.essentialclient_filename}") // shared external files.
+    if (project.findProperty("mapping_provider") == "mojang") {
+        mappings loom.officialMojangMappings()
+    }
+    else if (!noRemap) {
+        mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
+    }
+    def modImpl = noRemap ? "implementation" : "modImplementation"
+    def modCompile = noRemap ? "compileOnly" : "modCompileOnly"
+	add(modImpl, "net.fabricmc:fabric-loader:${project.loader_version}")
+	add(modImpl, "net.fabricmc.fabric-api:fabric-api:${project.fabricapi_version}")
+	add(modCompile, files("../../external/${project.essentialclient_filename}")) // shared external files.
     // check project.malilib_projectid and project.malilib_fileid in gradle.properties.
     // modImplementation "curse.maven:malilib-${project.malilib_projectid}:${project.malilib_fileid}"
     // if malilib projectid and fileid are not defined, try to find malilib_filename in gradle.properties.
-    if (!project.hasProperty("malilib_projectid")) {
-        modImplementation files("../../external/${project.malilib_filename}")
+    if (project.findProperty("malilib_provider") == "modrinth") {
+        add(modImpl, "maven.modrinth:malilib:${project.malilib_fileid}")
+    }
+    else if (!project.hasProperty("malilib_projectid")) {
+        add(modImpl, files("../../external/${project.malilib_filename}"))
         // 1.20.1 then kosmolot-unofficial-malilib-fabric-1.20-0.15.4+ksm.3.jar
     }
     else {
         if (mcVersion >= 12005) {
-            modImplementation "com.github.sakura-ryoko:malilib:${project.malilib_fileid}"
+            add(modImpl, "com.github.sakura-ryoko:malilib:${project.malilib_fileid}")
         }
         else {
-            modImplementation "curse.maven:malilib-${project.malilib_projectid}:${project.malilib_fileid}"
+            add(modImpl, "curse.maven:malilib-${project.malilib_projectid}:${project.malilib_fileid}")
         }
         //modImplementation "fi.dy.masa.malilib:malilib-fabric-${project.minecraft_version_out}:${project.malilib_version}"
     }
     // check project.litematica_projectid and project.litematica_fileid in gradle.properties.
 	// modImplementation "curse.maven:litematica-${project.litematica_projectid}:${project.litematica_fileid}"
-    if (!project.hasProperty("litematica_projectid")) {
-        modImplementation files("../../external/${project.litematica_filename}")
+    if (project.findProperty("litematica_provider") == "modrinth") {
+        add(modImpl, "maven.modrinth:litematica:${project.litematica_fileid}")
+    }
+    else if (!project.hasProperty("litematica_projectid")) {
+        add(modImpl, files("../../external/${project.litematica_filename}"))
         // 1.20.1 then kosmolot-unofficial-litematica-fabric-1.20-0.14.3+ksm.3.jar
     }
     else {
         if (mcVersion >= 12005) {
-            modImplementation "com.github.sakura-ryoko:litematica:${project.litematica_fileid}"
+            add(modImpl, "com.github.sakura-ryoko:litematica:${project.litematica_fileid}")
         }
         else {
-            modImplementation "curse.maven:litematica-${project.litematica_projectid}:${project.litematica_fileid}"
+            add(modImpl, "curse.maven:litematica-${project.litematica_projectid}:${project.litematica_fileid}")
         }
         //modImplementation "fi.dy.masa.litematica:litematica-fabric-${project.minecraft_version_out}:${project.litematica_version}"
     }
@@ -67,7 +84,9 @@ dependencies {
 
 String MIXIN_CONFIG_PATH = 'litematica-printer.mixins.json'
 JavaVersion JAVA_COMPATIBILITY
-if (mcVersion >= 12005) {
+if (mcVersion >= 260000) {
+    JAVA_COMPATIBILITY = JavaVersion.VERSION_25
+} else if (mcVersion >= 12005) {
     JAVA_COMPATIBILITY = JavaVersion.VERSION_21
 } else if (mcVersion >= 11800) {
     JAVA_COMPATIBILITY = JavaVersion.VERSION_17
@@ -127,6 +146,7 @@ processResources {
     inputs.property "id", project.mod_id
     inputs.property "name", project.mod_name
     inputs.property "version", fullModVersion
+    inputs.property "loader_version", project.loader_version
     inputs.property "minecraft_dependency", project.minecraft_dependency
 
     filesMatching("fabric.mod.json") {
@@ -134,6 +154,7 @@ processResources {
                 "id": project.mod_id,
                 "name": project.mod_name,
                 "version": fullModVersion,
+                "loader_version": project.loader_version,
                 "minecraft_dependency": project.minecraft_dependency,
         ]
         expand valueMap

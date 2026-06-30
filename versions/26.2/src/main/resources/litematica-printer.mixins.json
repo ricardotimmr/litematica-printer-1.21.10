@@ -13,6 +13,8 @@
     "Litematica.MinecraftClientMixin",
     "Litematica.SchematicVerifierMixin",
     "Litematica.WorldUtilsMixin",
+    "MinecraftClient.AbstractContainerMenuAccessor",
+    "MinecraftClient.ClientCommonPacketListenerImplMixin",
     "MinecraftClient.ClientPlayerInteractionManagerMixin",
     "MinecraftClient.ClientPlayNetworkHandlerMixin",
     "quasiEssentialClient.ClientPlayerEntityMixin",
