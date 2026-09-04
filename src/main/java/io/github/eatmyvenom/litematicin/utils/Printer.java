@@ -1106,12 +1106,14 @@ public class Printer {
 						}
 						if (facing != null) {
 							FacingData facedata = FacingData.getFacingData(stateSchematic);
-							if (facedata == null && !(stateSchematic.getBlock() instanceof AbstractRailBlock) && !simulateFacingData(stateSchematic, pos, Vec3d.ofCenter(pos)) ) {
+							boolean manualStackingAmountPlacement = canPlaceStackingAmountBlock(stateSchematic, stateClient, horizontalFacing)
+								&& !CanUseProtocol && !PRINTER_FAKE_ROTATION.getBooleanValue();
+							if (facedata == null && !(stateSchematic.getBlock() instanceof AbstractRailBlock) && !hasStackingAmountPlacement(stateSchematic) && !simulateFacingData(stateSchematic, pos, Vec3d.ofCenter(pos)) ) {
 								MessageHolder.sendMessageUncheckedUnique(mc.player, stateSchematic.getBlock() + " does not have facing data, please add this!");
 								if (PRINTER_SKIP_UNKNOWN_BLOCKSTATE.getBooleanValue()) continue;
 
 							}
-							if (!(CanUseProtocol && IsBlockSupportedCarpet(stateSchematic.getBlock())) && !PRINTER_FAKE_ROTATION.getBooleanValue() && !canPlaceFace(facedata, stateSchematic, primaryFacing, horizontalFacing)) {
+							if (!(CanUseProtocol && IsBlockSupportedCarpet(stateSchematic.getBlock())) && !PRINTER_FAKE_ROTATION.getBooleanValue() && !manualStackingAmountPlacement && !canPlaceFace(facedata, stateSchematic, primaryFacing, horizontalFacing)) {
 								continue;
 							}
 
@@ -2422,6 +2424,20 @@ public class Printer {
 			return false;
 		}
 		return stateClient.get(amountProperty) < stateSchematic.get(amountProperty);
+	}
+
+	private static boolean hasStackingAmountPlacement(BlockState state) {
+		return getStackingAmountProperty(state) != null && state.contains(Properties.HORIZONTAL_FACING);
+	}
+
+	private static boolean canPlaceStackingAmountBlock(BlockState stateSchematic, BlockState stateClient, Direction horizontalFacing) {
+		if (!hasStackingAmountPlacement(stateSchematic)) {
+			return false;
+		}
+		if (canIncreaseStackingAmount(stateSchematic, stateClient)) {
+			return true;
+		}
+		return horizontalFacing == null || horizontalFacing.getOpposite() == stateSchematic.get(Properties.HORIZONTAL_FACING);
 	}
 
 	private static boolean requiresMoreAction(BlockState stateSchematic, BlockState stateClient) {
