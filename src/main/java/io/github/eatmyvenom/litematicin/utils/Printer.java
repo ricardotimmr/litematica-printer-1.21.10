@@ -72,6 +72,7 @@ import static io.github.eatmyvenom.litematicin.utils.InventoryUtils.*;
 public class Printer {
 
 	private static final Set<String> STACKING_AMOUNT_PROPERTIES = Set.of("flower_amount", "segment_amount");
+	private static final int STACKING_AMOUNT_CACHE_MS = 200;
 	private static final HashSet<Long> signCache = new HashSet<>();
 	private static final LinkedHashMap<Pair<Long, Boolean>, PositionCache> positionCache = new LinkedHashMap<>();
 	private static Box CURRENT_BOX = null;
@@ -1174,6 +1175,21 @@ public class Printer {
 							MessageHolder.sendUniqueMessage(mc.player, stateSchematic.getBlock().getTranslationKey() + " can't be placed at " + pos.toShortString());
 							continue;
 						}
+						if (canIncreaseStackingAmount(stateSchematic, stateClient)) {
+							if (mc.player.isSneaking()) {
+								continue;
+							}
+							if (doSchematicWorldPickBlock(mc, stateSchematic, pos)) {
+								BlockHitResult hitResult = new BlockHitResult(Vec3d.ofCenter(pos), Direction.UP, pos, false);
+								if (interactBlock(mc, hitResult).isAccepted()) {
+									io.github.eatmyvenom.litematicin.utils.InventoryUtils.decrementCount(isCreative);
+									cacheEasyPlacePosition(pos, true, STACKING_AMOUNT_CACHE_MS);
+									sleepWhenRequired(mc);
+									interact++;
+								}
+							}
+							continue;
+						}
 						if (blockSchematic instanceof GrindstoneBlock) {
 							placeGrindStone(stateSchematic, mc, pos);
 							interact++;
@@ -1392,7 +1408,7 @@ public class Printer {
 								MessageHolder.sendOrderMessage("Places block " + blockSchematic + " at " + pos.toShortString());
 								interactBlock(mc, hitResult); //PLACE BLOCK
 								io.github.eatmyvenom.litematicin.utils.InventoryUtils.decrementCount(isCreative);
-								cacheEasyPlacePosition(pos, false);
+								cacheEasyPlaceAfterPlacement(pos, stateSchematic);
 								sleepWhenRequired(mc);
 								interact++;
 							}
@@ -1442,11 +1458,11 @@ public class Printer {
 						stateClient = mc.world.getBlockState(npos);
 						if (canIncreaseStackingAmount(stateSchematic, stateClient)) {
 							side = applyPlacementFacing(stateSchematic, sideOrig, stateClient);
-							hitResult = new BlockHitResult(hitPos, side, npos, false);
+							hitResult = new BlockHitResult(Vec3d.ofCenter(npos), Direction.UP, npos, false);
 							if (doSchematicWorldPickBlock(mc, stateSchematic, pos)) {
 								interactBlock(mc, hitResult);
 								io.github.eatmyvenom.litematicin.utils.InventoryUtils.decrementCount(isCreative);
-								cacheEasyPlacePosition(pos, false);
+								cacheEasyPlacePosition(pos, true, STACKING_AMOUNT_CACHE_MS);
 								sleepWhenRequired(mc);
 								interact++;
 							}
@@ -2410,7 +2426,7 @@ public class Printer {
 		return null;
 	}
 
-	private static boolean canIncreaseStackingAmount(BlockState stateSchematic, BlockState stateClient) {
+	static boolean canIncreaseStackingAmount(BlockState stateSchematic, BlockState stateClient) {
 		if (stateClient.getBlock() != stateSchematic.getBlock()) {
 			return false;
 		}
@@ -2426,11 +2442,11 @@ public class Printer {
 		return stateClient.get(amountProperty) < stateSchematic.get(amountProperty);
 	}
 
-	private static boolean hasStackingAmountPlacement(BlockState state) {
+	static boolean hasStackingAmountPlacement(BlockState state) {
 		return getStackingAmountProperty(state) != null && state.contains(Properties.HORIZONTAL_FACING);
 	}
 
-	private static boolean canPlaceStackingAmountBlock(BlockState stateSchematic, BlockState stateClient, Direction horizontalFacing) {
+	static boolean canPlaceStackingAmountBlock(BlockState stateSchematic, BlockState stateClient, Direction horizontalFacing) {
 		if (!hasStackingAmountPlacement(stateSchematic)) {
 			return false;
 		}
@@ -2438,6 +2454,14 @@ public class Printer {
 			return true;
 		}
 		return horizontalFacing == null || horizontalFacing.getOpposite() == stateSchematic.get(Properties.HORIZONTAL_FACING);
+	}
+
+	static void cacheEasyPlaceAfterPlacement(BlockPos pos, BlockState stateSchematic) {
+		if (hasStackingAmountPlacement(stateSchematic)) {
+			cacheEasyPlacePosition(pos, true, STACKING_AMOUNT_CACHE_MS);
+		} else {
+			cacheEasyPlacePosition(pos, false);
+		}
 	}
 
 	private static boolean requiresMoreAction(BlockState stateSchematic, BlockState stateClient) {
