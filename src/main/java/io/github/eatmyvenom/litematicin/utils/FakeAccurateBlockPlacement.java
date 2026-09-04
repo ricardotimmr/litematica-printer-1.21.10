@@ -19,7 +19,9 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
 import net.minecraft.registry.tag.BlockTags;
+import net.minecraft.state.property.IntProperty;
 import net.minecraft.state.property.Properties;
+import net.minecraft.state.property.Property;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
@@ -29,6 +31,7 @@ import net.minecraft.util.math.Vec3d;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Queue;
+import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 
 import static io.github.eatmyvenom.litematicin.LitematicaMixinMod.*;
@@ -46,6 +49,7 @@ public class FakeAccurateBlockPlacement {
 	public static float fakeYaw = 0;
 	public static float fakePitch = 0;
 	private static BlockState stateGrindStone = null;
+	private static final Set<String> STACKING_AMOUNT_PROPERTIES = Set.of("flower_amount", "segment_amount");
 	private static float previousFakeYaw = 0;
 	private static float previousFakePitch = 0;
 	private static int tickElapsed = 0;
@@ -365,7 +369,8 @@ public class FakeAccurateBlockPlacement {
 			return true; //without facing properties
 		}
 		FacingData facingData = FacingData.getFacingData(blockState);
-		if (facingData == null && !(blockState.getBlock() instanceof AbstractRailBlock) && !(blockState.getBlock() instanceof TorchBlock)) {
+		boolean stackingAmountPlacement = hasStackingAmountPlacement(blockState);
+		if (facingData == null && !(blockState.getBlock() instanceof AbstractRailBlock) && !(blockState.getBlock() instanceof TorchBlock) && !stackingAmountPlacement) {
 			if (!warningSet.contains(blockState.getBlock())) {
 				warningSet.add(blockState.getBlock());
 				System.out.printf("WARN : Block %s is not found\n", blockState.getBlock().toString());
@@ -393,7 +398,9 @@ public class FakeAccurateBlockPlacement {
 		int order = facingData == null ? 0 : facingData.type;
 		Direction direction1 = facing;
 		float fy = 0, fp = 12;
-		if (order == 0 || order == 1) {
+		if (stackingAmountPlacement) {
+			direction1 = blockState.get(Properties.HORIZONTAL_FACING).getOpposite();
+		} else if (order == 0 || order == 1) {
 			direction1 = reversed ? facing.getOpposite() : facing;
 		} else if (order == 2) {
 			facing = blockState.get(WallMountedBlock.FACING);
@@ -595,6 +602,19 @@ public class FakeAccurateBlockPlacement {
 			return true;
 		}
 		return false;
+	}
+
+	private static boolean hasStackingAmountPlacement(BlockState state) {
+		return state.contains(Properties.HORIZONTAL_FACING) && getStackingAmountProperty(state) != null;
+	}
+
+	private static IntProperty getStackingAmountProperty(BlockState state) {
+		for (Property<?> property : state.getProperties()) {
+			if (property instanceof IntProperty intProperty && STACKING_AMOUNT_PROPERTIES.contains(property.getName())) {
+				return intProperty;
+			}
+		}
+		return null;
 	}
 
 	//#if MC>=11700
