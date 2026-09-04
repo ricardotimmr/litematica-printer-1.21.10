@@ -53,7 +53,7 @@ public class Breaker implements IClientTickHandler {
 		// Start breaking
 		BlockState blockState = mc.world.getBlockState(pos);
 		//#if MC>=11800
-		if (blockState.calcBlockBreakingDelta(mc.player, mc.player.getWorld(), pos) >= 1.0F) {
+		if (blockState.calcBlockBreakingDelta(mc.player, mc.world, pos) >= 1.0F) {
 		//#else
 		//$$ if (blockState.calcBlockBreakingDelta(mc.player, mc.player.world, pos) >= 1.0F) {
 		//#endif
@@ -142,7 +142,11 @@ public class Breaker implements IClientTickHandler {
 		if (Hotkeys.EASY_PLACE_ACTIVATION.getKeybind().isKeybindHeld()) { // Only continue mining while the correct keys are pressed
 			Direction side = Direction.values()[0];
 			if (mc.interactionManager.updateBlockBreakingProgress(pos, side)) {
+				//#if MC>=12110
+				//$$ mc.world.spawnBlockBreakingParticle(pos, side);
+				//#else
 				mc.particleManager.addBlockBreakingParticles(pos, side);
+				//#endif
 				mc.player.swingHand(Hand.MAIN_HAND);
 			}
 		}

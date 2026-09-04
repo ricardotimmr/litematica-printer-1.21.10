@@ -36,7 +36,9 @@ import net.minecraft.fluid.LavaFluid;
 import net.minecraft.item.*;
 import net.minecraft.network.packet.c2s.play.UpdateSignC2SPacket;
 import net.minecraft.registry.tag.BlockTags;
+import net.minecraft.state.property.IntProperty;
 import net.minecraft.state.property.Properties;
+import net.minecraft.state.property.Property;
 import net.minecraft.text.Text;
 //#if MC>=11900
 import net.minecraft.text.TextContent;
@@ -69,6 +71,7 @@ import static io.github.eatmyvenom.litematicin.utils.InventoryUtils.*;
 @SuppressWarnings("ConstantConditions")
 public class Printer {
 
+	private static final Set<String> STACKING_AMOUNT_PROPERTIES = Set.of("flower_amount", "segment_amount");
 	private static final HashSet<Long> signCache = new HashSet<>();
 	private static final LinkedHashMap<Pair<Long, Boolean>, PositionCache> positionCache = new LinkedHashMap<>();
 	private static Box CURRENT_BOX = null;
@@ -1434,6 +1437,19 @@ public class Printer {
 								continue;
 							}
 						}
+						stateClient = mc.world.getBlockState(npos);
+						if (canIncreaseStackingAmount(stateSchematic, stateClient)) {
+							side = applyPlacementFacing(stateSchematic, sideOrig, stateClient);
+							hitResult = new BlockHitResult(hitPos, side, npos, false);
+							if (doSchematicWorldPickBlock(mc, stateSchematic, pos)) {
+								interactBlock(mc, hitResult);
+								io.github.eatmyvenom.litematicin.utils.InventoryUtils.decrementCount(isCreative);
+								cacheEasyPlacePosition(pos, false);
+								sleepWhenRequired(mc);
+								interact++;
+							}
+							continue;
+						}
 
 						if (interact >= maxInteract) {
 							if (shouldSleepLonger) {
@@ -2089,7 +2105,8 @@ public class Printer {
 	// returns should call continue in loop
 	@SuppressWarnings({"ConstantConditions"})
 	private static boolean placeCart(BlockState state, MinecraftClient client, BlockPos pos) {
-		if (state.isOf(Blocks.DETECTOR_RAIL) && state.get(DetectorRailBlock.POWERED) != client.world.getBlockState(pos).get(DetectorRailBlock.POWERED) && canPickItem(client, Items.MINECART.getDefaultStack()) && client.player.getPos().distanceTo(Vec3d.of(pos)) < 4.5) {
+		Vec3d playerPos = new Vec3d(client.player.getX(), client.player.getY(), client.player.getZ());
+		if (state.isOf(Blocks.DETECTOR_RAIL) && state.get(DetectorRailBlock.POWERED) != client.world.getBlockState(pos).get(DetectorRailBlock.POWERED) && canPickItem(client, Items.MINECART.getDefaultStack()) && playerPos.distanceTo(Vec3d.of(pos)) < 4.5) {
 			Vec3d clickPos = Vec3d.of(pos).add(0.5, 0.125, 0.5);
 			if (!FakeAccurateBlockPlacement.canHandleOther(Items.MINECART)) {
 				return false;
@@ -2381,9 +2398,42 @@ public class Printer {
 		return state.getBlock() instanceof Waterloggable && state.get(Properties.WATERLOGGED);
 	}
 
+	@Nullable
+	private static IntProperty getStackingAmountProperty(BlockState state) {
+		for (Property<?> property : state.getProperties()) {
+			if (property instanceof IntProperty intProperty && STACKING_AMOUNT_PROPERTIES.contains(property.getName())) {
+				return intProperty;
+			}
+		}
+		return null;
+	}
+
+	private static boolean canIncreaseStackingAmount(BlockState stateSchematic, BlockState stateClient) {
+		if (stateClient.getBlock() != stateSchematic.getBlock()) {
+			return false;
+		}
+		IntProperty amountProperty = getStackingAmountProperty(stateSchematic);
+		if (amountProperty == null || !stateClient.contains(amountProperty)) {
+			return false;
+		}
+		if (stateSchematic.contains(Properties.HORIZONTAL_FACING)
+			&& stateClient.contains(Properties.HORIZONTAL_FACING)
+			&& stateClient.get(Properties.HORIZONTAL_FACING) != stateSchematic.get(Properties.HORIZONTAL_FACING)) {
+			return false;
+		}
+		return stateClient.get(amountProperty) < stateSchematic.get(amountProperty);
+	}
+
 	private static boolean requiresMoreAction(BlockState stateSchematic, BlockState stateClient) {
 		// Return true if current state requires more action to be taken
 		Block blockSchematic = stateSchematic.getBlock();
+		if (canIncreaseStackingAmount(stateSchematic, stateClient)) {
+			return false;
+		}
+		IntProperty amountProperty = getStackingAmountProperty(stateSchematic);
+		if (amountProperty != null && stateClient.getBlock() == blockSchematic && stateClient.contains(amountProperty)) {
+			return stateClient.get(amountProperty) > stateSchematic.get(amountProperty);
+		}
 		if (blockSchematic instanceof SeaPickleBlock && stateSchematic.get(SeaPickleBlock.PICKLES) > 1) {
 			Block blockClient = stateClient.getBlock();
 

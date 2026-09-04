@@ -31,6 +31,17 @@ pluginManagement {
 
 def settings = new JsonSlurper().parseText(file('settings.json').text)
 def requestedTasks = gradle.startParameter.taskNames
+def requestedProjects = [] as LinkedHashSet
+requestedTasks.each { taskName ->
+	def normalizedTaskName = taskName.startsWith(':') ? taskName.substring(1) : taskName
+	def separator = normalizedTaskName.indexOf(':')
+	if (separator > 0) {
+		def candidate = normalizedTaskName.substring(0, separator)
+		if (settings.versions.contains(candidate)) {
+			requestedProjects.add(candidate)
+		}
+	}
+}
 def explicitlyRequested26_2 = gradle.startParameter.taskNames.any { taskName ->
 	taskName == ':26.2' ||
 		taskName == '26.2' ||
@@ -45,7 +56,14 @@ def aggregateBuildRequested = requestedTasks.isEmpty() || requestedTasks.any { t
 	def normalizedTaskName = taskName.startsWith(':') ? taskName.substring(1) : taskName
 	['assemble', 'build', 'check'].contains(normalizedTaskName)
 }
-for (String version : settings.versions) {
+def includeAllVersions = requestedProjects.isEmpty() || aggregateBuildRequested
+def requestedProjectIndexes = requestedProjects.collect { settings.versions.indexOf(it) }.findAll { it >= 0 }
+def lastRequestedProjectIndex = requestedProjectIndexes.isEmpty() ? -1 : requestedProjectIndexes.max()
+for (int versionIndex = 0; versionIndex < settings.versions.size(); versionIndex++) {
+	String version = settings.versions[versionIndex]
+	if (!includeAllVersions && versionIndex > lastRequestedProjectIndex) {
+		continue
+	}
 	if (version == '26.2' && JavaVersion.current() < JavaVersion.VERSION_25) {
 		if (onlyRequestedOtherProjects && !explicitlyRequested26_2) {
 			println 'Skipping :26.2 because Minecraft 26.2 requires running Gradle with Java 25.'

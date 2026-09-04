@@ -504,7 +504,8 @@ public class BedrockBreaker {
 		//positionStorage.refresh(mc.world);
 		int ret = 0;
 		switchTool(mc);
-		ArrayList<BlockPos> attackList = positionStorage.getFalseMarkedHasBlockPosInAttackRange(mc.world, mc.player.getPos(), MaxReach);
+		Vec3d playerPos = new Vec3d(mc.player.getX(), mc.player.getY(), mc.player.getZ());
+		ArrayList<BlockPos> attackList = positionStorage.getFalseMarkedHasBlockPosInAttackRange(mc.world, playerPos, MaxReach);
 		for (BlockPos position : attackList) {
 			if (ret >= maxInteract) {
 				return ret;
