@@ -644,6 +644,7 @@ public class Printer {
 							!(stateClient.isOf(Blocks.WATER) || stateClient.isOf(Blocks.LAVA) || stateClient.isOf(Blocks.BUBBLE_COLUMN)) &&
 							!stateClient.isOf(Blocks.PISTON_HEAD) && !stateClient.isOf(Blocks.MOVING_PISTON)) {
 							if (!stateClient.getBlock().getName().equals(stateSchematic.getBlock().getName()) ||
+								hasIncompatibleStackingAmountState(stateSchematic, stateClient) ||
 								(stateClient.getBlock() instanceof SlabBlock && stateSchematic.getBlock() instanceof SlabBlock && stateClient.get(SlabBlock.TYPE) != stateSchematic.get(SlabBlock.TYPE))
 									&& dx * dx + Math.pow(dy + 1.5, 2) + dz * dz <= MaxReach * MaxReach) {
 
@@ -935,6 +936,11 @@ public class Printer {
 					if (cBlock != sBlock && !isReplaceable(stateClient)) {
 						// Wrong block is in place, requires player action to fix
 						MessageHolder.sendUniqueMessage(mc.player, sBlock.getTranslationKey() + " at " + pos.toShortString() + " is blocking placement of " + cBlock.getTranslationKey() + "!!");
+						continue;
+					}
+					if (hasStackingAmountState(stateSchematic, stateClient)
+						&& !canIncreaseStackingAmount(stateSchematic, stateClient)) {
+						// Clicking an incompatible segmented block only adds another segment.
 						continue;
 					}
 					if (canPickBlock(mc, stateSchematic, pos)) {
@@ -2432,11 +2438,8 @@ public class Printer {
 	}
 
 	static boolean canIncreaseStackingAmount(BlockState stateSchematic, BlockState stateClient) {
-		if (stateClient.getBlock() != stateSchematic.getBlock()) {
-			return false;
-		}
 		IntProperty amountProperty = getStackingAmountProperty(stateSchematic);
-		if (amountProperty == null || !stateClient.contains(amountProperty)) {
+		if (!hasStackingAmountState(stateSchematic, stateClient) || amountProperty == null) {
 			return false;
 		}
 		if (stateSchematic.contains(Properties.HORIZONTAL_FACING)
@@ -2445,6 +2448,26 @@ public class Printer {
 			return false;
 		}
 		return stateClient.get(amountProperty) < stateSchematic.get(amountProperty);
+	}
+
+	private static boolean hasStackingAmountState(BlockState stateSchematic, BlockState stateClient) {
+		IntProperty amountProperty = getStackingAmountProperty(stateSchematic);
+		return amountProperty != null
+			&& stateClient.getBlock() == stateSchematic.getBlock()
+			&& stateClient.contains(amountProperty);
+	}
+
+	private static boolean hasIncompatibleStackingAmountState(BlockState stateSchematic, BlockState stateClient) {
+		if (!hasStackingAmountState(stateSchematic, stateClient)) {
+			return false;
+		}
+		if (stateSchematic.contains(Properties.HORIZONTAL_FACING)
+			&& stateClient.contains(Properties.HORIZONTAL_FACING)
+			&& stateClient.get(Properties.HORIZONTAL_FACING) != stateSchematic.get(Properties.HORIZONTAL_FACING)) {
+			return true;
+		}
+		IntProperty amountProperty = getStackingAmountProperty(stateSchematic);
+		return amountProperty != null && stateClient.get(amountProperty) > stateSchematic.get(amountProperty);
 	}
 
 	static boolean hasStackingAmountPlacement(BlockState state) {
@@ -2475,9 +2498,8 @@ public class Printer {
 		if (canIncreaseStackingAmount(stateSchematic, stateClient)) {
 			return false;
 		}
-		IntProperty amountProperty = getStackingAmountProperty(stateSchematic);
-		if (amountProperty != null && stateClient.getBlock() == blockSchematic && stateClient.contains(amountProperty)) {
-			return stateClient.get(amountProperty) > stateSchematic.get(amountProperty);
+		if (hasIncompatibleStackingAmountState(stateSchematic, stateClient)) {
+			return true;
 		}
 		if (blockSchematic instanceof SeaPickleBlock && stateSchematic.get(SeaPickleBlock.PICKLES) > 1) {
 			Block blockClient = stateClient.getBlock();
