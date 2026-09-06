@@ -2380,8 +2380,13 @@ public class Printer {
 						return facing == horizontalFacing;
 					}
 				case 2: // Wall mountable, such as a lever, only use player direction if not on wall.
-					return stateSchematic.get(WallMountedBlock.FACE) == WallMountLocation.WALL
-						|| (facing == horizontalFacing && stateSchematic.get(WallMountedBlock.FACE) == WallMountLocation.CEILING ? (primaryFacing == Direction.UP && horizontalFacing == stateSchematic.get(WallMountedBlock.FACING)) : (primaryFacing == Direction.DOWN && horizontalFacing == stateSchematic.get(WallMountedBlock.FACING)));
+					WallMountLocation location = stateSchematic.get(WallMountedBlock.FACE);
+					if (location == WallMountLocation.WALL) {
+						return true;
+					}
+					Direction requiredPrimaryFacing = location == WallMountLocation.CEILING ? Direction.UP : Direction.DOWN;
+					return primaryFacing == requiredPrimaryFacing
+						&& horizontalFacing == stateSchematic.get(WallMountedBlock.FACING);
 				case 3: //rotated, why, anvil, WNES order
 					return horizontalFacing.rotateYClockwise() == facing;
 				case 4: //rails
